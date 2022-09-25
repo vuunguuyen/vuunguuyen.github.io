@@ -6,11 +6,11 @@ body {
 }
 
 p {
-	display: inline;
+	/*display: inline;*/
 	font-family: helvetica, sans-serif;
 	font:Helvetica Neue;
 	font-weight:light;
-	font-size:18px;
+	/*font-size:18px;*/
 	line-height:1.3em;
 	color:#828282;
 }
@@ -26,7 +26,7 @@ ul {
 
 p.headnfoot {
 	color: #828282;
-	font-size:16px;
+	/*font-size:16px;*/
 }
 
 p.lighter {
