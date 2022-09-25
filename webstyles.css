@@ -73,15 +73,15 @@ a {
 
 a:link, a:visited{
 	/*background-color: #f44336;*/
-	color: #57068c;
+	color: #505050;
 	/*padding: 15px 25px;*/
 	text-align: center;
-	text-decoration: none;
+	text-decoration: underline;
 	display: inline-block;
 	}
 a:hover {
 	text-decoration: none;
-	color: #a683ea;
+	color: #57068c;
 }
 
 a.layoutimg {
