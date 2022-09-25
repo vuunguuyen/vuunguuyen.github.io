@@ -6,11 +6,11 @@ body {
 }
 
 p {
-	display: inline;
+	/*display: inline;*/
 	font-family: helvetica, sans-serif;
 	font:Helvetica Neue;
 	font-weight:light;
-	/*font-size:18px;*/
+	font-size:18px;
 	line-height:1.3em;
 	color:#828282;
 }
