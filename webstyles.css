@@ -98,6 +98,7 @@ a.headnfoot {
 	position: fixed;     
 	bottom: 50px; 
 	width: 100%;
+	text-align: center;
 }
 
 a.headnfoot:hover {
@@ -107,6 +108,7 @@ a.headnfoot:hover {
 	position: fixed;       
 	bottom: 50px; 
 	width: 100%;
+	text-align: center;
 }
 
 td {
