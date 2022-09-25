@@ -71,16 +71,17 @@ a {
   color: inherit;
 }
 
-a:link, a:visited {
- border:none;
- text-decoration:underline;
- font-style:normal;
- color:#505050;
-}
-
+a:link, a:visited{
+	/*background-color: #f44336;*/
+	color: #57068c;
+	/*padding: 15px 25px;*/
+	text-align: center;
+	text-decoration: none;
+	display: inline-block;
+	}
 a:hover {
- text-decoration: inherit;
- color: #a683ea;
+	text-decoration: none;
+	color: #a683ea;
 }
 
 a.layoutimg {
