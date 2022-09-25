@@ -59,19 +59,19 @@ h2 {
 	color:#828282;
 }
 
-.mainblock {
+/*.mainblock {
 	width:100%;
     text-align:justify;
     text-justify:inter-word;
-}
+}*/
 
-a {
+/*a {
   text-decoration: inherit;
   font-style: inherit;
   color: inherit;
-}
+}*/
 
-a:link, a:visited {
+/*a:link, a:visited {
  border:none;
  text-decoration:underline;
  font-style:normal;
@@ -104,7 +104,7 @@ a.headnfoot:hover {
 
 td {
 	vertical-align:top;
-}
+}*/
 
 #maincell {
 	word-wrap:break-word;
