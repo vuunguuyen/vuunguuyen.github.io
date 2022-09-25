@@ -95,6 +95,10 @@ a.headnfoot {
 	color: #57068c;
 	text-decoration:none;
 	font-size:14px;
+	position: fixed;     
+	text-align: justify-all;    
+	bottom: 50px; 
+	width: 100%;
 }
 
 a.headnfoot:hover {
