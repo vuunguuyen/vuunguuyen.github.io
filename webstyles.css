@@ -11,7 +11,7 @@ p {
 	font:Helvetica Neue;
 	font-weight:light;
 	/*font-size:18px;*/
-	line-height:1.3em;
+	/*line-height:1.3em;*/
 	color:#828282;
 }
 
@@ -30,12 +30,12 @@ p.headnfoot {
 }
 
 p.lighter {
-	display: inline;
+	/*display: inline;*/
 	font-family: helvetica, sans-serif;
 	font:Helvetica Neue;
 	font-weight:lighter;
-	font-size:18px;
-	line-height:1.3em;
+	/*font-size:18px;*/
+	/*line-height:1.3em;*/
 	color:#828282;
 }
 
