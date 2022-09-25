@@ -79,8 +79,8 @@ a:link, a:visited {
 }
 
 a:hover {
- text-decoration: none;
- color: #83c8ea;
+ text-decoration: inherit;
+ color: #a683ea;
 }
 
 a.layoutimg {
