@@ -104,8 +104,7 @@ a.headnfoot:hover {
 	color: #8900e1;
 	text-decoration:none;
 	font-size:14px;
-	position: fixed;     
-	text-align: justify-all;    
+	position: fixed;       
 	bottom: 50px; 
 	width: 100%;
 }
