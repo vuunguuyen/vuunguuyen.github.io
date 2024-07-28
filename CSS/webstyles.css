@@ -63,6 +63,7 @@ h2 {
 	width:100%;
     text-align:justify;
     text-justify:inter-word;
+    word-break: break-all
 }
 
 a {
@@ -76,6 +77,7 @@ a:link, a:visited{
 	text-decoration: underline;
 	display: inline-block;
 	font-style:normal;
+
 	}
 a:hover {
 	text-decoration: none;
