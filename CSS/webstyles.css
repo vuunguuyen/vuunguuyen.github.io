@@ -6,7 +6,7 @@ body {
 }
 
 p {
-	/*display: inline;*/
+	display: inline;
 	font-family: helvetica, sans-serif;
 	font:Helvetica Neue;
 	font-weight:light;
@@ -63,7 +63,6 @@ h2 {
 	width:100%;
     text-align:justify;
     text-justify:inter-word;
-    word-break: break-all
 }
 
 a {
@@ -75,9 +74,8 @@ a {
 a:link, a:visited{
 	color: #505050;
 	text-decoration: underline;
-	display: inline-block;
 	font-style:normal;
-
+	border: none;
 	}
 a:hover {
 	text-decoration: none;
