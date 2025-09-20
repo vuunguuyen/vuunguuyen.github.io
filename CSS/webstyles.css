@@ -79,6 +79,37 @@ a:link, a:visited{
 	}
 a:hover {
 	text-decoration: none;
+}
+
+/* Responsive Design for Mobile */
+@media (max-width: 600px) {
+	body {
+		padding: 8px;
+	}
+	table {
+		width: 100% !important;
+		min-width: 0 !important;
+		max-width: 100vw !important;
+		table-layout: auto !important;
+	}
+	.mainblock, h1, h2, p, ul {
+		font-size: 16px !important;
+		line-height: 1.4em !important;
+		word-break: break-word;
+	}
+	p.headnfoot {
+		font-size: 12px !important;
+	}
+	h1 {
+		font-size: 22px !important;
+	}
+	h2 {
+		font-size: 18px !important;
+	}
+	td, th {
+		padding: 4px !important;
+	}
+}
 	color: #57068c;
 }
 
