@@ -1,9 +1,10 @@
 /**
  * ============================================================================
- * INTERACTIVE TRIAKIS ICOSAHEDRON COMPONENT
+ * INTERACTIVE TRIAKIS ICOSAHEDRON COMPONENT (SVG Vector Version)
  * ============================================================================
  * 
  * A 3D wireframe triakis icosahedron (60 faces) rendered as SVG vector graphics.
+ * No WebGL required - pure SVG for crisp rendering at any resolution.
  * 
  * The triakis icosahedron is formed by adding a triangular pyramid to each
  * face of an icosahedron, resulting in 60 triangular faces, 32 vertices,
@@ -18,7 +19,7 @@
  *   - Depth-sorted edges with opacity fading
  * 
  * Dependencies:
- *   - None
+ *   - None! Pure vanilla JavaScript
  * 
  * @author Vu Nguyen
  * @version 3.0.0
@@ -786,25 +787,36 @@ const Polyhedron = (function() {
   };
 
   /**
-   * Shows the shape name in the hint text, then hides it
+   * Shows the shape name in the hint text, then fades it out
    * @param {string} mode - The current display mode
    */
   function showModeLabel(mode) {
     const hint = document.getElementById('polyhedron-hint');
     if (!hint) return;
 
-    // Show mode label
-    hint.textContent = MODE_LABELS[mode];
-    hint.style.display = '';
-
     // Clear any existing timer
     if (hint.dataset.timerId) {
       clearTimeout(parseInt(hint.dataset.timerId));
     }
 
-    // Hide after 1.5 seconds
+    // Reset opacity and show mode label
+    hint.style.transition = 'none';
+    hint.style.opacity = '1';
+    hint.textContent = MODE_LABELS[mode];
+    hint.style.display = '';
+
+    // Force reflow to reset transition
+    hint.offsetHeight;
+
+    // Fade out after 2 seconds
     const timerId = setTimeout(() => {
-      hint.style.display = 'none';
+      hint.style.transition = 'opacity 0.5s ease';
+      hint.style.opacity = '0';
+      
+      // Hide completely after fade
+      setTimeout(() => {
+        hint.style.display = 'none';
+      }, 500);
     }, 2000);
 
     hint.dataset.timerId = timerId.toString();
