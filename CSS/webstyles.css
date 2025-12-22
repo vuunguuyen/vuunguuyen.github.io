@@ -58,7 +58,7 @@ h1 {
     font-weight: bold;
     font-stretch: condensed;
     font-size: 30px;
-    color: #57068c;
+    color: #0e0e7b;
 }
 
 h2 {
@@ -120,13 +120,13 @@ p.headnfoot {
 }
 
 a.headnfoot {
-    color: #57068c;
+    color: #0e0e7b;
     text-decoration: none;
     font-size: 14px;
 }
 
 a.headnfoot:hover {
-    color: #8900e1;
+    color: #003087;
     text-decoration: none;
     font-size: 14px;
 }

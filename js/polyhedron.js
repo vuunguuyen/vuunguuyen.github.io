@@ -45,13 +45,13 @@ const Polyhedron = (function() {
     displayMode: 'inner',
 
     // ----- Appearance -----
-    strokeColor: '#57068c',       // Inner edge color (NYU purple)
+    strokeColor: '#0e0e7b',       // Inner edge color (Yankee purple)
     strokeWidth: 1,               // Inner edge thickness
     strokeOpacity: 0.9,           // Inner edge opacity (0-1)
-    dualStrokeColor: '#57068c',   // Dual edge color
+    dualStrokeColor: '#0e0e7b',   // Dual edge color
     dualStrokeWidth: 0.5,         // Dual edge thickness (thinner)
     dualStrokeOpacity: 0.4,       // Dual edge opacity (more transparent)
-    vertexColor: '#57068c',       // Vertex dot color
+    vertexColor: '#0e0e7b',       // Vertex dot color
     vertexRadius: 0,              // Vertex dot size (0 to disable)
     depthFading: true,            // Fade edges based on depth
 

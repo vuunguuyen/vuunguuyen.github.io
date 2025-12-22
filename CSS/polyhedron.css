@@ -61,6 +61,6 @@
    =========================================================================== */
 
 #polyhedron-container:hover svg line {
-    filter: drop-shadow(0 0 3px rgba(87, 6, 140, 0.3));
+    filter: drop-shadow(0 0 3px #0e0e7b);
     transition: filter 0.3s ease;
 }
