@@ -805,7 +805,7 @@ const Polyhedron = (function() {
     // Hide after 1.5 seconds
     const timerId = setTimeout(() => {
       hint.style.display = 'none';
-    }, 1500);
+    }, 2000);
 
     hint.dataset.timerId = timerId.toString();
   }
