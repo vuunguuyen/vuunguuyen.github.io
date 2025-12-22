@@ -1,0 +1,421 @@
+/**
+ * ============================================================================
+ * INTERACTIVE ICOSAHEDRON COMPONENT
+ * ============================================================================
+ * 
+ * A 3D wireframe icosahedron with mouse/touch interaction.
+ * 
+ * Features:
+ *   - Omnidirectional auto-rotation
+ *   - Click-and-drag manual rotation
+ *   - Momentum physics on release
+ *   - Touch device support
+ *   - Auto-resume rotation after idle
+ * 
+ * Dependencies:
+ *   - Three.js r128+ (must be loaded before this script)
+ * 
+ * Usage:
+ *   1. Include Three.js in your HTML
+ *   2. Include this script
+ *   3. Add a container element with id="icosahedron-container"
+ *   4. Component auto-initializes on DOMContentLoaded
+ * 
+ * Configuration:
+ *   Modify the CONFIG object below to customize appearance and behavior.
+ *   Or call Icosahedron.init(container, customConfig) with overrides.
+ * 
+ * @author Vu Nguyen
+ * @version 1.0.0
+ * @license MIT
+ * ============================================================================
+ */
+
+const Icosahedron = (function() {
+  'use strict';
+
+  /* ===========================================================================
+     DEFAULT CONFIGURATION
+     Adjust these values to customize the icosahedron
+     =========================================================================== */
+  const DEFAULT_CONFIG = {
+    // ----- Dimensions -----
+    size: 200,                    // Canvas width/height in pixels
+    radius: 1,                    // Icosahedron radius in world units
+    cameraDistance: 3,            // Camera distance from origin
+
+    // ----- Appearance -----
+    color: 0x57068c,              // Wireframe color (NYU purple)
+    opacity: 0.8,                 // Wireframe opacity (0-1)
+
+    // ----- Auto-rotation -----
+    // Rotation speed per axis (radians per frame, ~60fps)
+    autoRotation: { 
+      x: 0.003, 
+      y: 0.005, 
+      z: 0.002 
+    },
+
+    // ----- Interaction Physics -----
+    dragSensitivity: 0.01,        // Rotation per pixel of mouse movement
+    momentumDamping: 0.95,        // Velocity decay (0 = instant stop, 1 = no friction)
+    idleResumeDelay: 3000         // Milliseconds before auto-rotation resumes
+  };
+
+  /* ===========================================================================
+     PRIVATE VARIABLES
+     =========================================================================== */
+  
+  /** @type {Object} Merged configuration */
+  let config = { ...DEFAULT_CONFIG };
+
+  /** @type {Object} Internal state */
+  const state = {
+    isDragging: false,
+    isAutoRotating: true,
+    lastPointer: { x: 0, y: 0 },
+    velocity: { x: 0, y: 0 },
+    resumeTimer: null
+  };
+
+  /** @type {THREE.Scene} */
+  let scene = null;
+
+  /** @type {THREE.PerspectiveCamera} */
+  let camera = null;
+
+  /** @type {THREE.WebGLRenderer} */
+  let renderer = null;
+
+  /** @type {THREE.Mesh} */
+  let mesh = null;
+
+  /** @type {number} Animation frame ID */
+  let animationId = null;
+
+  /** @type {HTMLElement} Container element */
+  let containerEl = null;
+
+  /* ===========================================================================
+     UTILITY FUNCTIONS
+     =========================================================================== */
+
+  /**
+   * Extracts normalized pointer coordinates from mouse or touch event
+   * @param {MouseEvent|TouchEvent} e - The input event
+   * @returns {{x: number, y: number}} Pointer coordinates
+   */
+  function getPointerPosition(e) {
+    const source = e.touches ? e.touches[0] : e;
+    return { 
+      x: source.clientX, 
+      y: source.clientY 
+    };
+  }
+
+  /**
+   * Deep merges user config with defaults
+   * @param {Object} userConfig - User-provided configuration
+   * @returns {Object} Merged configuration
+   */
+  function mergeConfig(userConfig) {
+    return {
+      ...DEFAULT_CONFIG,
+      ...userConfig,
+      autoRotation: {
+        ...DEFAULT_CONFIG.autoRotation,
+        ...(userConfig.autoRotation || {})
+      }
+    };
+  }
+
+  /* ===========================================================================
+     EVENT HANDLERS
+     =========================================================================== */
+
+  /**
+   * Handles pointer down (mousedown/touchstart)
+   * Begins drag interaction
+   * @param {MouseEvent|TouchEvent} e
+   */
+  function onPointerDown(e) {
+    e.preventDefault();
+    
+    state.isDragging = true;
+    state.isAutoRotating = false;
+    state.lastPointer = getPointerPosition(e);
+
+    // Clear any pending auto-resume timer
+    if (state.resumeTimer) {
+      clearTimeout(state.resumeTimer);
+      state.resumeTimer = null;
+    }
+
+    // Update cursor
+    if (renderer) {
+      renderer.domElement.style.cursor = 'grabbing';
+    }
+  }
+
+  /**
+   * Handles pointer move (mousemove/touchmove)
+   * Updates rotation based on drag delta
+   * @param {MouseEvent|TouchEvent} e
+   */
+  function onPointerMove(e) {
+    if (!state.isDragging) return;
+    e.preventDefault();
+
+    const pointer = getPointerPosition(e);
+    const delta = {
+      x: pointer.x - state.lastPointer.x,
+      y: pointer.y - state.lastPointer.y
+    };
+
+    // Apply rotation: horizontal drag → Y-axis, vertical drag → X-axis
+    mesh.rotation.y += delta.x * config.dragSensitivity;
+    mesh.rotation.x += delta.y * config.dragSensitivity;
+
+    // Store velocity for momentum effect
+    state.velocity = {
+      x: delta.y * config.dragSensitivity,
+      y: delta.x * config.dragSensitivity
+    };
+
+    state.lastPointer = pointer;
+  }
+
+  /**
+   * Handles pointer up (mouseup/touchend/mouseleave)
+   * Ends drag and schedules auto-rotation resume
+   */
+  function onPointerUp() {
+    if (!state.isDragging) return;
+    
+    state.isDragging = false;
+
+    // Update cursor
+    if (renderer) {
+      renderer.domElement.style.cursor = 'grab';
+    }
+
+    // Schedule auto-rotation to resume after idle period
+    state.resumeTimer = setTimeout(() => {
+      state.isAutoRotating = true;
+    }, config.idleResumeDelay);
+  }
+
+  /**
+   * Binds all necessary event listeners to the canvas
+   * @param {HTMLCanvasElement} canvas
+   */
+  function bindEvents(canvas) {
+    // Mouse events
+    canvas.addEventListener('mousedown', onPointerDown);
+    canvas.addEventListener('mousemove', onPointerMove);
+    canvas.addEventListener('mouseup', onPointerUp);
+    canvas.addEventListener('mouseleave', onPointerUp);
+
+    // Touch events (passive: false allows preventDefault)
+    canvas.addEventListener('touchstart', onPointerDown, { passive: false });
+    canvas.addEventListener('touchmove', onPointerMove, { passive: false });
+    canvas.addEventListener('touchend', onPointerUp);
+  }
+
+  /**
+   * Removes all event listeners from the canvas
+   * @param {HTMLCanvasElement} canvas
+   */
+  function unbindEvents(canvas) {
+    canvas.removeEventListener('mousedown', onPointerDown);
+    canvas.removeEventListener('mousemove', onPointerMove);
+    canvas.removeEventListener('mouseup', onPointerUp);
+    canvas.removeEventListener('mouseleave', onPointerUp);
+    canvas.removeEventListener('touchstart', onPointerDown);
+    canvas.removeEventListener('touchmove', onPointerMove);
+    canvas.removeEventListener('touchend', onPointerUp);
+  }
+
+  /* ===========================================================================
+     ANIMATION
+     =========================================================================== */
+
+  /**
+   * Main render loop - called every animation frame (~60fps)
+   * Handles auto-rotation and momentum physics
+   */
+  function animate() {
+    animationId = requestAnimationFrame(animate);
+
+    if (state.isAutoRotating) {
+      // Gentle omnidirectional auto-rotation
+      mesh.rotation.x += config.autoRotation.x;
+      mesh.rotation.y += config.autoRotation.y;
+      mesh.rotation.z += config.autoRotation.z;
+    } else if (!state.isDragging) {
+      // Apply momentum with exponential damping
+      mesh.rotation.x += state.velocity.x;
+      mesh.rotation.y += state.velocity.y;
+      state.velocity.x *= config.momentumDamping;
+      state.velocity.y *= config.momentumDamping;
+    }
+    // Note: No rotation updates during active drag (handled in onPointerMove)
+
+    renderer.render(scene, camera);
+  }
+
+  /* ===========================================================================
+     PUBLIC API
+     =========================================================================== */
+
+  /**
+   * Initializes the icosahedron component
+   * @param {HTMLElement|string} container - Container element or selector
+   * @param {Object} [userConfig={}] - Optional configuration overrides
+   * @returns {boolean} True if initialization succeeded
+   */
+  function init(container, userConfig = {}) {
+    // Resolve container element
+    if (typeof container === 'string') {
+      containerEl = document.querySelector(container);
+    } else {
+      containerEl = container;
+    }
+
+    // Validate dependencies
+    if (!containerEl) {
+      console.error('[Icosahedron] Container element not found');
+      return false;
+    }
+    if (typeof THREE === 'undefined') {
+      console.error('[Icosahedron] Three.js is not loaded');
+      return false;
+    }
+
+    // Merge configuration
+    config = mergeConfig(userConfig);
+
+    // ----- Scene Setup -----
+    scene = new THREE.Scene();
+
+    // ----- Camera Setup -----
+    camera = new THREE.PerspectiveCamera(
+      50,                           // Field of view (degrees)
+      1,                            // Aspect ratio (square canvas)
+      0.1,                          // Near clipping plane
+      1000                          // Far clipping plane
+    );
+    camera.position.z = config.cameraDistance;
+
+    // ----- Renderer Setup -----
+    renderer = new THREE.WebGLRenderer({
+      antialias: true,              // Smooth edges
+      alpha: true                   // Transparent background
+    });
+    renderer.setSize(config.size, config.size);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2)); // Cap for performance
+    renderer.domElement.style.cursor = 'grab';
+    containerEl.appendChild(renderer.domElement);
+
+    // ----- Mesh Setup -----
+    const geometry = new THREE.IcosahedronGeometry(config.radius, 0);
+    const material = new THREE.MeshBasicMaterial({
+      color: config.color,
+      wireframe: true,
+      transparent: true,
+      opacity: config.opacity
+    });
+    mesh = new THREE.Mesh(geometry, material);
+    scene.add(mesh);
+
+    // ----- Events -----
+    bindEvents(renderer.domElement);
+
+    // ----- Start Animation -----
+    animate();
+
+    return true;
+  }
+
+  /**
+   * Destroys the component and releases all resources
+   * Call this when removing the component from the page
+   */
+  function destroy() {
+    // Stop animation loop
+    if (animationId) {
+      cancelAnimationFrame(animationId);
+      animationId = null;
+    }
+
+    // Clear pending timer
+    if (state.resumeTimer) {
+      clearTimeout(state.resumeTimer);
+      state.resumeTimer = null;
+    }
+
+    // Remove event listeners
+    if (renderer) {
+      unbindEvents(renderer.domElement);
+    }
+
+    // Dispose Three.js objects
+    if (mesh) {
+      mesh.geometry.dispose();
+      mesh.material.dispose();
+      scene.remove(mesh);
+      mesh = null;
+    }
+
+    if (renderer) {
+      renderer.dispose();
+      renderer.domElement.remove();
+      renderer = null;
+    }
+
+    scene = null;
+    camera = null;
+    containerEl = null;
+
+    // Reset state
+    state.isDragging = false;
+    state.isAutoRotating = true;
+    state.velocity = { x: 0, y: 0 };
+  }
+
+  /**
+   * Updates configuration at runtime
+   * @param {Object} newConfig - Configuration values to update
+   */
+  function setConfig(newConfig) {
+    config = mergeConfig(newConfig);
+    
+    // Apply visual changes immediately
+    if (mesh && newConfig.color !== undefined) {
+      mesh.material.color.setHex(newConfig.color);
+    }
+    if (mesh && newConfig.opacity !== undefined) {
+      mesh.material.opacity = newConfig.opacity;
+    }
+  }
+
+  // ----- Expose Public API -----
+  return {
+    init,
+    destroy,
+    setConfig,
+    get config() { return { ...config }; }
+  };
+
+})();
+
+/* ===========================================================================
+   AUTO-INITIALIZATION
+   Automatically initializes if container exists on page load
+   =========================================================================== */
+document.addEventListener('DOMContentLoaded', function() {
+  const container = document.getElementById('icosahedron-container');
+  if (container) {
+    Icosahedron.init(container);
+  }
+});
