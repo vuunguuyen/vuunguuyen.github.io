@@ -636,8 +636,16 @@ const Polyhedron = (function() {
     window.addEventListener('touchmove', onPointerMove, { passive: false });
     window.addEventListener('touchend', onPointerUp);
     
-    // Click to cycle display mode (only if not dragging)
+    // Click to cycle display mode (only if not dragging) - desktop
     svg.addEventListener('click', function(e) {
+      if (!state.wasDragging) {
+        cycleDisplayMode();
+      }
+      state.wasDragging = false;
+    });
+    
+    // Tap to cycle display mode - mobile
+    svg.addEventListener('touchend', function(e) {
       if (!state.wasDragging) {
         cycleDisplayMode();
       }
