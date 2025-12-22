@@ -1,12 +1,12 @@
 /**
  * ============================================================================
- * ICOSAHEDRON COMPONENT STYLES
+ * POLYHEDRON COMPONENT STYLES
  * ============================================================================
  * 
- * Styles for the interactive 3D SVG icosahedron component.
+ * Styles for the interactive 3D SVG polyhedron component.
  * 
  * @author Vu Nguyen
- * @version 2.0.0
+ * @version 3.0.0
  * ============================================================================
  */
 
@@ -14,36 +14,24 @@
    CONTAINER
    =========================================================================== */
 
-#icosahedron-container {
-    /* Layout - allow content to define size */
+#polyhedron-container {
+    width: 200px;
+    height: 200px;
     display: flex;
     justify-content: center;
     align-items: center;
-    
-    /* Spacing */
-    margin-top: 40px;
-    margin-bottom: 40px;
-    padding: 20px;
-
-    /* Interaction */
+    margin: 40px auto 20px auto;
     cursor: grab;
-    
-    /* Prevent text selection while dragging */
     -webkit-user-select: none;
     -moz-user-select: none;
     -ms-user-select: none;
     user-select: none;
-
-    /* Smooth touch scrolling on mobile */
     -webkit-touch-callout: none;
     touch-action: none;
-    
-    /* Allow overflow to be visible */
     overflow: visible;
 }
 
-/* Active state (while dragging) */
-#icosahedron-container:active {
+#polyhedron-container:active {
     cursor: grabbing;
 }
 
@@ -51,12 +39,9 @@
    SVG ELEMENT
    =========================================================================== */
 
-#icosahedron-container svg {
-    /* Ensure SVG is fully visible */
+#polyhedron-container svg {
     display: block;
     overflow: visible;
-    
-    /* Remove any default styling */
     outline: none;
 }
 
@@ -65,18 +50,17 @@
    =========================================================================== */
 
 @media (max-width: 600px) {
-    #icosahedron-container {
+    #polyhedron-container {
         margin-top: 30px;
         margin-bottom: 30px;
-        padding: 10px;
     }
 }
 
 /* ===========================================================================
-   OPTIONAL: HOVER GLOW EFFECT
+   HOVER GLOW EFFECT
    =========================================================================== */
 
-#icosahedron-container:hover svg line {
+#polyhedron-container:hover svg line {
     filter: drop-shadow(0 0 3px rgba(87, 6, 140, 0.3));
     transition: filter 0.3s ease;
 }
