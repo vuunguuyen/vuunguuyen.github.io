@@ -1,6 +1,6 @@
 /**
  * ============================================================================
- * INTERACTIVE TRIAKIS ICOSAHEDRON COMPONENT (SVG Vector Version)
+ * INTERACTIVE TRIAKIS ICOSAHEDRON COMPONENT
  * ============================================================================
  * 
  * A 3D wireframe triakis icosahedron (60 faces) rendered as SVG vector graphics.

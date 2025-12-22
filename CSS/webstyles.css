@@ -1,138 +1,190 @@
+/**
+ * ============================================================================
+ * WEBSTYLES.CSS - Main Site Stylesheet
+ * ============================================================================
+ * 
+ * Table of Contents:
+ *   1. Base Typography
+ *   2. Headings
+ *   3. Links
+ *   4. Layout Components
+ *   5. Header & Footer
+ *   6. Table Styles
+ *   7. Responsive Design
+ * 
+ * @author Vu Nguyen
+ * ============================================================================
+ */
+
 @charset "UTF-8";
-/* CSS Document */
+
+/* =============================================================================
+   1. BASE TYPOGRAPHY
+   ============================================================================= */
 
 p {
-	display: inline;
-	font-family: helvetica, sans-serif;
-	font:Helvetica Neue;
-	font-weight:light;
-	font-size:18px;
-	line-height:1.3em;
-	color:#828282;
-}
-
-ul {
-	font-family: helvetica, sans-serif;
-	font:Helvetica Neue;
-	font-weight:light;
-	font-size:18px;
-	line-height:1.3em;
-	color:#828282;
-}
-
-p.headnfoot {
-	color: #828282;
-	font-size:14px;
+    display: inline;
+    font-family: 'Helvetica Neue', Helvetica, sans-serif;
+    font-weight: light;
+    font-size: 18px;
+    line-height: 1.3em;
+    color: #828282;
 }
 
 p.lighter {
-	display: inline;
-	font-family: helvetica, sans-serif;
-	font:Helvetica Neue;
-	font-weight:lighter;
-	font-size:18px;
-	line-height:1.3em;
-	color:#828282;
+    display: inline;
+    font-family: 'Helvetica Neue', Helvetica, sans-serif;
+    font-weight: lighter;
+    font-size: 18px;
+    line-height: 1.3em;
+    color: #828282;
 }
 
+ul {
+    font-family: 'Helvetica Neue', Helvetica, sans-serif;
+    font-weight: light;
+    font-size: 18px;
+    line-height: 1.3em;
+    color: #828282;
+}
+
+/* =============================================================================
+   2. HEADINGS
+   ============================================================================= */
+
 h1 {
-	display: inline;
-	font-family: helvetica, sans-serif;
-	font:Helvetica Neue;
-	font-weight:bold;
-	font-stretch:condensed;
-	font-size:30px;
-	color:#57068c;
+    display: inline;
+    font-family: 'Helvetica Neue', Helvetica, sans-serif;
+    font-weight: bold;
+    font-stretch: condensed;
+    font-size: 30px;
+    color: #57068c;
 }
 
 h2 {
-	display: inline;
-	font-family: helvetica, sans-serif;
-	font:Helvetica Neue;
-	font-weight:lighter;
-	font-size:24px;
-	line-height:1.2em;
-	color:#828282;
+    display: inline;
+    font-family: 'Helvetica Neue', Helvetica, sans-serif;
+    font-weight: lighter;
+    font-size: 24px;
+    line-height: 1.2em;
+    color: #828282;
 }
 
-.mainblock {
-	width:100%;
-    text-align:justify;
-    text-justify:inter-word;
-}
+/* =============================================================================
+   3. LINKS
+   ============================================================================= */
 
 a {
-  text-decoration: inherit;
-  font-style: inherit;
-  color: inherit;
+    text-decoration: inherit;
+    font-style: inherit;
+    color: inherit;
 }
 
-a:link, a:visited{
-	color: #505050;
-	text-decoration: underline;
-	font-style:normal;
-	border: none;
-	}
+a:link,
+a:visited {
+    color: #505050;
+    text-decoration: underline;
+    font-style: normal;
+    border: none;
+}
+
 a:hover {
-	text-decoration: none;
+    text-decoration: none;
 }
 
-/* Responsive Design for Mobile */
-@media (max-width: 600px) {
-	body {
-		padding: 8px;
-	}
-	table {
-		width: 100% !important;
-		min-width: 0 !important;
-		max-width: 100vw !important;
-		table-layout: auto !important;
-	}
-	.mainblock, h1, h2, p, ul {
-		font-size: 16px !important;
-		line-height: 1.4em !important;
-		word-break: break-word;
-	}
-	p.headnfoot {
-		font-size: 12px !important;
-	}
-	h1 {
-		font-size: 22px !important;
-	}
-	h2 {
-		font-size: 18px !important;
-	}
-	td, th {
-		padding: 4px !important;
-	}
-}
-
+/* Image links */
 a.layoutimg {
-	text-decoration:none;
-	padding:0;
-	border:none;
-	margin: 0 0 0 0;
+    text-decoration: none;
+    padding: 0;
+    border: none;
+    margin: 0;
+}
+
+/* =============================================================================
+   4. LAYOUT COMPONENTS
+   ============================================================================= */
+
+.mainblock {
+    width: 100%;
+    text-align: justify;
+    text-justify: inter-word;
+}
+
+/* =============================================================================
+   5. HEADER & FOOTER
+   ============================================================================= */
+
+p.headnfoot {
+    color: #828282;
+    font-size: 14px;
 }
 
 a.headnfoot {
-	color: #57068c;
-	text-decoration:none;
-	font-size:14px;
+    color: #57068c;
+    text-decoration: none;
+    font-size: 14px;
 }
 
 a.headnfoot:hover {
-	color: #8900e1;
-	text-decoration:none;
-	font-size:14px;
+    color: #8900e1;
+    text-decoration: none;
+    font-size: 14px;
 }
 
+/* =============================================================================
+   6. TABLE STYLES
+   ============================================================================= */
+
 td {
-	vertical-align:top;
+    vertical-align: top;
 }
 
 #maincell {
-	word-wrap:break-word;
-	vertical-align:top;
-	padding-top:30px;
+    word-wrap: break-word;
+    vertical-align: top;
+    padding-top: 30px;
 }
 
+/* =============================================================================
+   7. RESPONSIVE DESIGN
+   ============================================================================= */
+
+@media (max-width: 600px) {
+    body {
+        padding: 8px;
+    }
+
+    table {
+        width: 100% !important;
+        min-width: 0 !important;
+        max-width: 100vw !important;
+        table-layout: auto !important;
+    }
+
+    .mainblock,
+    h1,
+    h2,
+    p,
+    ul {
+        font-size: 16px !important;
+        line-height: 1.4em !important;
+        word-break: break-word;
+    }
+
+    p.headnfoot {
+        font-size: 12px !important;
+    }
+
+    h1 {
+        font-size: 22px !important;
+    }
+
+    h2 {
+        font-size: 18px !important;
+    }
+
+    td,
+    th {
+        padding: 4px !important;
+    }
+}
