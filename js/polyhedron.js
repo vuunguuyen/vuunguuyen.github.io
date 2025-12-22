@@ -4,7 +4,6 @@
  * ============================================================================
  * 
  * A 3D wireframe triakis icosahedron (60 faces) rendered as SVG vector graphics.
- * No WebGL required - pure SVG for crisp rendering at any resolution.
  * 
  * The triakis icosahedron is formed by adding a triangular pyramid to each
  * face of an icosahedron, resulting in 60 triangular faces, 32 vertices,
@@ -19,7 +18,7 @@
  *   - Depth-sorted edges with opacity fading
  * 
  * Dependencies:
- *   - None! Pure vanilla JavaScript
+ *   - None
  * 
  * @author Vu Nguyen
  * @version 3.0.0
@@ -35,8 +34,8 @@ const Polyhedron = (function() {
      =========================================================================== */
   const DEFAULT_CONFIG = {
     // ----- Dimensions -----
-    size: 200,                    // SVG viewport size
-    scale: 45,                    // Scale factor for the polyhedra
+    size: 280,                    // SVG viewport size
+    scale: 85,                    // Scale factor for the polyhedra
 
     // ----- Display Mode -----
     // 'inner' = triakis icosahedron only
