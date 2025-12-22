@@ -1,10 +1,6 @@
 @charset "UTF-8";
 /* CSS Document */
 
-body {
-	
-}
-
 p {
 	display: inline;
 	font-family: helvetica, sans-serif;
@@ -110,7 +106,6 @@ a:hover {
 		padding: 4px !important;
 	}
 }
-	color: #57068c;
 
 a.layoutimg {
 	text-decoration:none;
