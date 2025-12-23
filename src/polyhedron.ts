@@ -389,6 +389,9 @@ const Polyhedron: PolyhedronAPI = (function(): PolyhedronAPI {
     return { x: src.clientX, y: src.clientY };
   }
 
+  // Track if this was a tap/click (no movement at all)
+  let didMove = false;
+  
   function onDown(e: MouseEvent | TouchEvent): void {
     e.preventDefault();
     const p = getPos(e);
@@ -396,6 +399,7 @@ const Polyhedron: PolyhedronAPI = (function(): PolyhedronAPI {
     lastY = downY = p.y;
     isDragging = true;
     wasDragging = false;
+    didMove = false;
     isAutoRotating = false;
     if (resumeTimer) { clearTimeout(resumeTimer); resumeTimer = null; }
   }
@@ -405,6 +409,9 @@ const Polyhedron: PolyhedronAPI = (function(): PolyhedronAPI {
     e.preventDefault();
     const p = getPos(e);
     const dx = p.x - downX, dy = p.y - downY;
+    
+    // Mark that movement occurred
+    didMove = true;
     
     if (dx * dx + dy * dy > DRAG_THRESHOLD) {
       wasDragging = true;
@@ -427,37 +434,45 @@ const Polyhedron: PolyhedronAPI = (function(): PolyhedronAPI {
     isDragging = false;
     if (svg) svg.style.cursor = 'grab';
     
-    const didDrag = wasDragging;
+    const isTouchEvent = e.type === 'touchend';
+    const wasPureTap = !didMove && !wasDragging;
     
-    if (didDrag) {
+    if (wasDragging) {
       // After dragging, resume auto-rotation after delay
       if (resumeTimer) clearTimeout(resumeTimer);
       resumeTimer = window.setTimeout(() => { 
         isAutoRotating = true; 
       }, config.idleResumeDelay);
-      // Reset wasDragging after a delay so onClick can check it
-      setTimeout(() => { wasDragging = false; }, 50);
-    } else if (e.type === 'touchend') {
-      // Handle tap on mobile (no drag occurred)
+    } else if (wasPureTap && isTouchEvent) {
+      // Pure tap on mobile (no movement at all)
       cycleDisplayMode();
       isAutoRotating = true;
-      wasDragging = false;
+    } else if (!isTouchEvent) {
+      // Mouse release - let onClick handle if it was a pure click
+      // Resume rotation after delay regardless
+      if (resumeTimer) clearTimeout(resumeTimer);
+      resumeTimer = window.setTimeout(() => { 
+        isAutoRotating = true; 
+      }, config.idleResumeDelay);
     } else {
-      // Mouse up without drag - let onClick handle it
-      // Don't reset wasDragging here
+      // Touch with small movement but not a drag - just resume rotation
+      isAutoRotating = true;
     }
   }
 
   function onClick(): void {
-    // Only handle click for mouse if no drag occurred
-    if (wasDragging) {
+    // Only handle click for mouse if no movement occurred
+    if (didMove || wasDragging) {
       wasDragging = false;
+      didMove = false;
       return;
     }
     
     cycleDisplayMode();
     if (resumeTimer) clearTimeout(resumeTimer);
     isAutoRotating = true;
+    wasDragging = false;
+    didMove = false;
   }
 
   function bindEvents(): void {
@@ -538,7 +553,7 @@ const Polyhedron: PolyhedronAPI = (function(): PolyhedronAPI {
     unbindEvents();
     svg?.remove();
     svg = null; edgeLines = []; dualLines = []; vertexCircles = []; containerEl = null;
-    isDragging = wasDragging = false; isAutoRotating = true;
+    isDragging = wasDragging = didMove = false; isAutoRotating = true;
     rotX = 0.5; rotY = 0.3; rotZ = velX = velY = 0;
   }
 
