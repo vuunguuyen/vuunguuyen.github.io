@@ -325,9 +325,13 @@ const Polyhedron = (function () {
         wasDragging = false;
     }
     function onClick() {
+        if (!wasDragging) {
+            cycleDisplayMode();
+        }
         if (resumeTimer)
             clearTimeout(resumeTimer);
         isAutoRotating = true;
+        wasDragging = false;
     }
     function bindEvents() {
         if (!svg)

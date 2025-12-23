@@ -449,9 +449,13 @@ const Polyhedron: PolyhedronAPI = (function(): PolyhedronAPI {
 
   function onClick(): void {
     // Only handle click for mouse (touchend handles mobile)
+    if (!wasDragging) {
+      cycleDisplayMode();
+    }
     // Always resume auto-rotation after click
     if (resumeTimer) clearTimeout(resumeTimer);
     isAutoRotating = true;
+    wasDragging = false;
   }
 
   function bindEvents(): void {
