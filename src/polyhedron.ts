@@ -435,27 +435,29 @@ const Polyhedron: PolyhedronAPI = (function(): PolyhedronAPI {
       resumeTimer = window.setTimeout(() => { 
         isAutoRotating = true; 
       }, config.idleResumeDelay);
+      // Reset wasDragging after a delay so onClick can check it
+      setTimeout(() => { wasDragging = false; }, 50);
     } else if (e.type === 'touchend') {
       // Handle tap on mobile (no drag occurred)
       cycleDisplayMode();
-      // Ensure auto-rotation continues after tap
-      if (!isAutoRotating) {
-        isAutoRotating = true;
-      }
+      isAutoRotating = true;
+      wasDragging = false;
+    } else {
+      // Mouse up without drag - let onClick handle it
+      // Don't reset wasDragging here
     }
-    
-    wasDragging = false;
   }
 
   function onClick(): void {
-    // Only handle click for mouse (touchend handles mobile)
-    if (!wasDragging) {
-      cycleDisplayMode();
+    // Only handle click for mouse if no drag occurred
+    if (wasDragging) {
+      wasDragging = false;
+      return;
     }
-    // Always resume auto-rotation after click
+    
+    cycleDisplayMode();
     if (resumeTimer) clearTimeout(resumeTimer);
     isAutoRotating = true;
-    wasDragging = false;
   }
 
   function bindEvents(): void {

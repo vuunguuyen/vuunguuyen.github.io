@@ -315,23 +315,25 @@ const Polyhedron = (function () {
             resumeTimer = window.setTimeout(() => {
                 isAutoRotating = true;
             }, config.idleResumeDelay);
+            setTimeout(() => { wasDragging = false; }, 50);
         }
         else if (e.type === 'touchend') {
             cycleDisplayMode();
-            if (!isAutoRotating) {
-                isAutoRotating = true;
-            }
+            isAutoRotating = true;
+            wasDragging = false;
         }
-        wasDragging = false;
+        else {
+        }
     }
     function onClick() {
-        if (!wasDragging) {
-            cycleDisplayMode();
+        if (wasDragging) {
+            wasDragging = false;
+            return;
         }
+        cycleDisplayMode();
         if (resumeTimer)
             clearTimeout(resumeTimer);
         isAutoRotating = true;
-        wasDragging = false;
     }
     function bindEvents() {
         if (!svg)
