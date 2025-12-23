@@ -1,13 +1,12 @@
 /**
  * ============================================================================
- * INTERACTIVE TRIAKIS ICOSAHEDRON COMPONENT (SVG Vector Version)
+ * INTERACTIVE TRIAKIS ICOSAHEDRON COMPONENT
  * ============================================================================
  * 
- * A 3D wireframe triakis icosahedron (60 faces) rendered as SVG vector graphics.
- * Includes its dual, the truncated dodecahedron, with toggle functionality.
+ * Optimized 3D wireframe polyhedron renderer using SVG.
  * 
  * @author Vu Nguyen
- * @version 3.0.0
+ * @version 3.1.0
  * @license MIT
  * ============================================================================
  */
@@ -17,34 +16,13 @@
 // =============================================================================
 
 type DisplayMode = 'inner' | 'outer' | 'both';
-type Point3D = [number, number, number];
+type Vec3 = [number, number, number];
 type Edge = [number, number];
 
-interface Point2D {
-  x: number;
-  y: number;
-}
-
-interface Projected extends Point2D {
-  z: number;
-}
-
-interface Rotation {
-  x: number;
-  y: number;
-  z: number;
-}
-
-interface Velocity {
-  x: number;
-  y: number;
-}
-
-interface AutoRotation {
-  x: number;
-  y: number;
-  z: number;
-}
+interface Projected { x: number; y: number; z: number; }
+interface Rotation { x: number; y: number; z: number; }
+interface Point2D { x: number; y: number; }
+interface Geometry { vertices: Vec3[]; edges: Edge[]; }
 
 interface Config {
   size: number;
@@ -59,26 +37,10 @@ interface Config {
   vertexColor: string;
   vertexRadius: number;
   depthFading: boolean;
-  autoRotation: AutoRotation;
+  autoRotation: Rotation;
   dragSensitivity: number;
   momentumDamping: number;
   idleResumeDelay: number;
-}
-
-interface State {
-  isDragging: boolean;
-  wasDragging: boolean;
-  isAutoRotating: boolean;
-  lastPointer: Point2D;
-  pointerDownPos: Point2D;
-  velocity: Velocity;
-  rotation: Rotation;
-  resumeTimer: number | null;
-}
-
-interface Geometry {
-  vertices: Point3D[];
-  edges: Edge[];
 }
 
 interface PolyhedronAPI {
@@ -91,13 +53,15 @@ interface PolyhedronAPI {
 }
 
 // =============================================================================
-// CONSTANTS
+// CONSTANTS (Precomputed for performance)
 // =============================================================================
 
-const PHI: number = (1 + Math.sqrt(5)) / 2;
-const PYRAMID_HEIGHT: number = 0.32;
-const DUAL_SCALE: number = 1.35;
-const DRAG_THRESHOLD: number = 5;
+const PHI = 1.6180339887498949; // (1 + √5) / 2
+const INV_PHI = 0.6180339887498949;
+const PYRAMID_HEIGHT = 0.32;
+const DUAL_SCALE = 1.35;
+const DRAG_THRESHOLD = 25; // Squared to avoid sqrt
+const TWO_PI = Math.PI * 2;
 
 const MODE_LABELS: Record<DisplayMode, string> = {
   inner: 'Triakis Icosahedron',
@@ -105,10 +69,14 @@ const MODE_LABELS: Record<DisplayMode, string> = {
   both: 'Triakis Icosahedron & Truncated Dodecahedron'
 };
 
-const ICO_VERTICES: Point3D[] = [
-  [-1, PHI, 0], [1, PHI, 0], [-1, -PHI, 0], [1, -PHI, 0],
-  [0, -1, PHI], [0, 1, PHI], [0, -1, -PHI], [0, 1, -PHI],
-  [PHI, 0, -1], [PHI, 0, 1], [-PHI, 0, -1], [-PHI, 0, 1]
+// Precomputed normalized icosahedron vertices
+const ICO_VERTICES: Vec3[] = [
+  [-0.5257311121, 0.8506508084, 0], [0.5257311121, 0.8506508084, 0],
+  [-0.5257311121, -0.8506508084, 0], [0.5257311121, -0.8506508084, 0],
+  [0, -0.5257311121, 0.8506508084], [0, 0.5257311121, 0.8506508084],
+  [0, -0.5257311121, -0.8506508084], [0, 0.5257311121, -0.8506508084],
+  [0.8506508084, 0, -0.5257311121], [0.8506508084, 0, 0.5257311121],
+  [-0.8506508084, 0, -0.5257311121], [-0.8506508084, 0, 0.5257311121]
 ];
 
 const ICO_FACES: [number, number, number][] = [
@@ -116,6 +84,20 @@ const ICO_FACES: [number, number, number][] = [
   [1, 5, 9], [5, 11, 4], [11, 10, 2], [10, 7, 6], [7, 1, 8],
   [3, 9, 4], [3, 4, 2], [3, 2, 6], [3, 6, 8], [3, 8, 9],
   [4, 9, 5], [2, 4, 11], [6, 2, 10], [8, 6, 7], [9, 8, 1]
+];
+
+// Precomputed truncated dodecahedron edges (constant geometry)
+const TRUNC_DODECA_EDGES: Edge[] = [
+  [0,2],[0,12],[0,16],[1,3],[1,13],[1,17],[2,14],[2,18],[3,15],[3,19],
+  [4,5],[4,20],[4,22],[5,21],[5,23],[6,7],[6,24],[6,26],[7,25],[7,27],
+  [8,10],[8,28],[8,29],[9,11],[9,30],[9,31],[10,32],[10,33],[11,34],[11,35],
+  [12,16],[12,36],[13,17],[13,37],[14,18],[14,38],[15,19],[15,39],[16,40],
+  [17,41],[18,42],[19,43],[20,22],[20,44],[21,23],[21,45],[22,46],[23,47],
+  [24,26],[24,48],[25,27],[25,49],[26,50],[27,51],[28,29],[28,52],[29,53],
+  [30,31],[30,54],[31,55],[32,33],[32,56],[33,57],[34,35],[34,58],[35,59],
+  [36,40],[36,52],[37,41],[37,53],[38,42],[38,54],[39,43],[39,55],[40,48],
+  [41,49],[42,50],[43,51],[44,46],[44,52],[45,47],[45,53],[46,54],[47,55],
+  [48,56],[49,57],[50,58],[51,59],[56,58],[57,59]
 ];
 
 const DEFAULT_CONFIG: Config = {
@@ -138,97 +120,65 @@ const DEFAULT_CONFIG: Config = {
 };
 
 // =============================================================================
-// GEOMETRY FUNCTIONS
+// GEOMETRY GENERATION
 // =============================================================================
 
-function normalize(v: Point3D): Point3D {
-  const len = Math.sqrt(v[0] * v[0] + v[1] * v[1] + v[2] * v[2]);
-  return [v[0] / len, v[1] / len, v[2] / len];
-}
-
-function centroid(v0: Point3D, v1: Point3D, v2: Point3D): Point3D {
-  return [
-    (v0[0] + v1[0] + v2[0]) / 3,
-    (v0[1] + v1[1] + v2[1]) / 3,
-    (v0[2] + v1[2] + v2[2]) / 3
-  ];
-}
-
 function generateTriakisIcosahedron(): Geometry {
-  const baseVertices: Point3D[] = ICO_VERTICES.map(v => normalize(v));
-  const vertices: Point3D[] = [...baseVertices];
-  const edges = new Set<string>();
-
-  const addEdge = (i1: number, i2: number): void => {
-    const key = i1 < i2 ? `${i1}-${i2}` : `${i2}-${i1}`;
-    edges.add(key);
+  const vertices: Vec3[] = [...ICO_VERTICES];
+  const edges: Edge[] = [];
+  const edgeSet = new Set<number>();
+  
+  const addEdge = (i1: number, i2: number) => {
+    const key = i1 < i2 ? (i1 << 16) | i2 : (i2 << 16) | i1;
+    if (!edgeSet.has(key)) {
+      edgeSet.add(key);
+      edges.push([Math.min(i1, i2), Math.max(i1, i2)]);
+    }
   };
 
-  ICO_FACES.forEach(([i0, i1, i2]) => {
-    const v0 = baseVertices[i0];
-    const v1 = baseVertices[i1];
-    const v2 = baseVertices[i2];
-
-    const center = centroid(v0, v1, v2);
-    const normal = normalize(center);
-    const pyramidVertex: Point3D = [
-      normal[0] * (1 + PYRAMID_HEIGHT),
-      normal[1] * (1 + PYRAMID_HEIGHT),
-      normal[2] * (1 + PYRAMID_HEIGHT)
-    ];
-
-    const newIndex = vertices.length;
-    vertices.push(pyramidVertex);
-
-    addEdge(newIndex, i0);
-    addEdge(newIndex, i1);
-    addEdge(newIndex, i2);
-    addEdge(i0, i1);
-    addEdge(i1, i2);
-    addEdge(i2, i0);
-  });
-
-  const edgeArray: Edge[] = Array.from(edges).map(key => {
-    const [a, b] = key.split('-').map(Number);
-    return [a, b] as Edge;
-  });
-
-  return { vertices, edges: edgeArray };
+  for (let f = 0; f < ICO_FACES.length; f++) {
+    const [i0, i1, i2] = ICO_FACES[f];
+    const v0 = ICO_VERTICES[i0], v1 = ICO_VERTICES[i1], v2 = ICO_VERTICES[i2];
+    
+    // Centroid and pyramid apex
+    const cx = (v0[0] + v1[0] + v2[0]) / 3;
+    const cy = (v0[1] + v1[1] + v2[1]) / 3;
+    const cz = (v0[2] + v1[2] + v2[2]) / 3;
+    const len = Math.sqrt(cx * cx + cy * cy + cz * cz);
+    const s = (1 + PYRAMID_HEIGHT) / len;
+    
+    const idx = vertices.length;
+    vertices.push([cx * s, cy * s, cz * s]);
+    
+    addEdge(idx, i0); addEdge(idx, i1); addEdge(idx, i2);
+    addEdge(i0, i1); addEdge(i1, i2); addEdge(i2, i0);
+  }
+  
+  return { vertices, edges };
 }
 
 function generateTruncatedDodecahedron(): Geometry {
-  const vertices: Point3D[] = [];
-  const edges = new Set<string>();
-
-  const addEdge = (i1: number, i2: number): void => {
-    const key = i1 < i2 ? `${i1}-${i2}` : `${i2}-${i1}`;
-    edges.add(key);
-  };
-
-  const invPhi = 1 / PHI;
-  const twoPhi = 2 * PHI;
-  const phiPlusOne = PHI + 1;
-  const twoPhiPlusOne = 2 + PHI;
-
-  const coords: Point3D[] = [
-    [0, invPhi, twoPhiPlusOne], [0, invPhi, -twoPhiPlusOne],
-    [0, -invPhi, twoPhiPlusOne], [0, -invPhi, -twoPhiPlusOne],
-    [twoPhiPlusOne, 0, invPhi], [twoPhiPlusOne, 0, -invPhi],
-    [-twoPhiPlusOne, 0, invPhi], [-twoPhiPlusOne, 0, -invPhi],
-    [invPhi, twoPhiPlusOne, 0], [invPhi, -twoPhiPlusOne, 0],
-    [-invPhi, twoPhiPlusOne, 0], [-invPhi, -twoPhiPlusOne, 0],
-    [invPhi, PHI, twoPhi], [invPhi, PHI, -twoPhi],
-    [invPhi, -PHI, twoPhi], [invPhi, -PHI, -twoPhi],
-    [-invPhi, PHI, twoPhi], [-invPhi, PHI, -twoPhi],
-    [-invPhi, -PHI, twoPhi], [-invPhi, -PHI, -twoPhi],
-    [twoPhi, invPhi, PHI], [twoPhi, invPhi, -PHI],
-    [twoPhi, -invPhi, PHI], [twoPhi, -invPhi, -PHI],
-    [-twoPhi, invPhi, PHI], [-twoPhi, invPhi, -PHI],
-    [-twoPhi, -invPhi, PHI], [-twoPhi, -invPhi, -PHI],
-    [PHI, twoPhi, invPhi], [PHI, twoPhi, -invPhi],
-    [PHI, -twoPhi, invPhi], [PHI, -twoPhi, -invPhi],
-    [-PHI, twoPhi, invPhi], [-PHI, twoPhi, -invPhi],
-    [-PHI, -twoPhi, invPhi], [-PHI, -twoPhi, -invPhi],
+  const twoPhi = 2 * PHI, phiPlusOne = PHI + 1, twoPhiPlusOne = 2 + PHI;
+  
+  const raw: Vec3[] = [
+    [0, INV_PHI, twoPhiPlusOne], [0, INV_PHI, -twoPhiPlusOne],
+    [0, -INV_PHI, twoPhiPlusOne], [0, -INV_PHI, -twoPhiPlusOne],
+    [twoPhiPlusOne, 0, INV_PHI], [twoPhiPlusOne, 0, -INV_PHI],
+    [-twoPhiPlusOne, 0, INV_PHI], [-twoPhiPlusOne, 0, -INV_PHI],
+    [INV_PHI, twoPhiPlusOne, 0], [INV_PHI, -twoPhiPlusOne, 0],
+    [-INV_PHI, twoPhiPlusOne, 0], [-INV_PHI, -twoPhiPlusOne, 0],
+    [INV_PHI, PHI, twoPhi], [INV_PHI, PHI, -twoPhi],
+    [INV_PHI, -PHI, twoPhi], [INV_PHI, -PHI, -twoPhi],
+    [-INV_PHI, PHI, twoPhi], [-INV_PHI, PHI, -twoPhi],
+    [-INV_PHI, -PHI, twoPhi], [-INV_PHI, -PHI, -twoPhi],
+    [twoPhi, INV_PHI, PHI], [twoPhi, INV_PHI, -PHI],
+    [twoPhi, -INV_PHI, PHI], [twoPhi, -INV_PHI, -PHI],
+    [-twoPhi, INV_PHI, PHI], [-twoPhi, INV_PHI, -PHI],
+    [-twoPhi, -INV_PHI, PHI], [-twoPhi, -INV_PHI, -PHI],
+    [PHI, twoPhi, INV_PHI], [PHI, twoPhi, -INV_PHI],
+    [PHI, -twoPhi, INV_PHI], [PHI, -twoPhi, -INV_PHI],
+    [-PHI, twoPhi, INV_PHI], [-PHI, twoPhi, -INV_PHI],
+    [-PHI, -twoPhi, INV_PHI], [-PHI, -twoPhi, -INV_PHI],
     [PHI, 2, phiPlusOne], [PHI, 2, -phiPlusOne],
     [PHI, -2, phiPlusOne], [PHI, -2, -phiPlusOne],
     [-PHI, 2, phiPlusOne], [-PHI, 2, -phiPlusOne],
@@ -243,71 +193,34 @@ function generateTruncatedDodecahedron(): Geometry {
     [-2, -phiPlusOne, PHI], [-2, -phiPlusOne, -PHI]
   ];
 
-  const maxDist = Math.max(...coords.map(v => 
-    Math.sqrt(v[0] * v[0] + v[1] * v[1] + v[2] * v[2])
-  ));
-
-  coords.forEach(v => {
-    vertices.push([
-      (v[0] / maxDist) * DUAL_SCALE,
-      (v[1] / maxDist) * DUAL_SCALE,
-      (v[2] / maxDist) * DUAL_SCALE
-    ]);
-  });
-
-  const edgeLength = 2 * invPhi / maxDist * DUAL_SCALE * 1.1;
-
-  for (let i = 0; i < vertices.length; i++) {
-    for (let j = i + 1; j < vertices.length; j++) {
-      const dx = vertices[i][0] - vertices[j][0];
-      const dy = vertices[i][1] - vertices[j][1];
-      const dz = vertices[i][2] - vertices[j][2];
-      const dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
-
-      if (dist < edgeLength) {
-        addEdge(i, j);
-      }
-    }
+  let maxDistSq = 0;
+  for (let i = 0; i < raw.length; i++) {
+    const [x, y, z] = raw[i];
+    maxDistSq = Math.max(maxDistSq, x * x + y * y + z * z);
   }
-
-  const edgeArray: Edge[] = Array.from(edges).map(key => {
-    const [a, b] = key.split('-').map(Number);
-    return [a, b] as Edge;
-  });
-
-  return { vertices, edges: edgeArray };
+  const scale = DUAL_SCALE / Math.sqrt(maxDistSq);
+  
+  const vertices: Vec3[] = raw.map(([x, y, z]) => [x * scale, y * scale, z * scale]);
+  
+  return { vertices, edges: TRUNC_DODECA_EDGES };
 }
 
 // =============================================================================
-// 3D MATH UTILITIES
+// 3D MATH (Optimized combined rotation)
 // =============================================================================
 
-function rotateX(point: Point3D, angle: number): Point3D {
-  const [x, y, z] = point;
-  const cos = Math.cos(angle);
-  const sin = Math.sin(angle);
-  return [x, y * cos - z * sin, y * sin + z * cos];
-}
-
-function rotateY(point: Point3D, angle: number): Point3D {
-  const [x, y, z] = point;
-  const cos = Math.cos(angle);
-  const sin = Math.sin(angle);
-  return [x * cos + z * sin, y, -x * sin + z * cos];
-}
-
-function rotateZ(point: Point3D, angle: number): Point3D {
-  const [x, y, z] = point;
-  const cos = Math.cos(angle);
-  const sin = Math.sin(angle);
-  return [x * cos - y * sin, x * sin + y * cos, z];
-}
-
-function rotatePoint(point: Point3D, rotation: Rotation): Point3D {
-  let p = rotateX(point, rotation.x);
-  p = rotateY(p, rotation.y);
-  p = rotateZ(p, rotation.z);
-  return p;
+function rotatePoint(p: Vec3, r: Rotation): Vec3 {
+  const cx = Math.cos(r.x), sx = Math.sin(r.x);
+  const cy = Math.cos(r.y), sy = Math.sin(r.y);
+  const cz = Math.cos(r.z), sz = Math.sin(r.z);
+  
+  // Combined rotation matrix multiplication
+  const y1 = p[1] * cx - p[2] * sx;
+  const z1 = p[1] * sx + p[2] * cx;
+  const x2 = p[0] * cy + z1 * sy;
+  const z2 = -p[0] * sy + z1 * cy;
+  
+  return [x2 * cz - y1 * sz, x2 * sz + y1 * cz, z2];
 }
 
 // =============================================================================
@@ -315,130 +228,73 @@ function rotatePoint(point: Point3D, rotation: Rotation): Point3D {
 // =============================================================================
 
 const Polyhedron: PolyhedronAPI = (function(): PolyhedronAPI {
-  // Generate geometry
-  const triakis: Geometry = generateTriakisIcosahedron();
-  const dual: Geometry = generateTruncatedDodecahedron();
-
-  const VERTICES: Point3D[] = triakis.vertices;
-  const EDGES: Edge[] = triakis.edges;
-  const DUAL_VERTICES: Point3D[] = dual.vertices;
-  const DUAL_EDGES: Edge[] = dual.edges;
-
-  // Private state
+  const triakis = generateTriakisIcosahedron();
+  const dual = generateTruncatedDodecahedron();
+  
   let config: Config = { ...DEFAULT_CONFIG };
-
-  const state: State = {
-    isDragging: false,
-    wasDragging: false,
-    isAutoRotating: true,
-    lastPointer: { x: 0, y: 0 },
-    pointerDownPos: { x: 0, y: 0 },
-    velocity: { x: 0, y: 0 },
-    rotation: { x: 0.5, y: 0.3, z: 0 },
-    resumeTimer: null
-  };
-
   let svg: SVGSVGElement | null = null;
-  let edgeElements: SVGLineElement[] = [];
-  let dualEdgeElements: SVGLineElement[] = [];
-  let vertexElements: SVGCircleElement[] = [];
-  let animationId: number | null = null;
+  let edgeLines: SVGLineElement[] = [];
+  let dualLines: SVGLineElement[] = [];
+  let vertexCircles: SVGCircleElement[] = [];
   let containerEl: HTMLElement | null = null;
+  let animationId: number | null = null;
+  
+  // State
+  let isDragging = false, wasDragging = false, isAutoRotating = true;
+  let lastX = 0, lastY = 0, downX = 0, downY = 0;
+  let velX = 0, velY = 0;
+  let rotX = 0.5, rotY = 0.3, rotZ = 0;
+  let resumeTimer: number | null = null;
 
-  // ===========================================================================
-  // PROJECTION
-  // ===========================================================================
-
-  function project(point: Point3D): Projected {
-    const [x, y, z] = point;
-    const halfSize = config.size / 2;
-    return {
-      x: halfSize + x * config.scale,
-      y: halfSize - y * config.scale,
-      z: z
-    };
+  // Projection cache
+  const projected: Projected[] = [];
+  const dualProjected: Projected[] = [];
+  
+  function project(p: Vec3): Projected {
+    const h = config.size / 2;
+    return { x: h + p[0] * config.scale, y: h - p[1] * config.scale, z: p[2] };
   }
 
-  // ===========================================================================
-  // SVG RENDERING
-  // ===========================================================================
-
   function createSVG(): void {
-    svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg') as SVGSVGElement;
-    svg.setAttribute('width', config.size.toString());
-    svg.setAttribute('height', config.size.toString());
+    svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    svg.setAttribute('width', String(config.size));
+    svg.setAttribute('height', String(config.size));
     svg.setAttribute('viewBox', `0 0 ${config.size} ${config.size}`);
-    svg.setAttribute('overflow', 'visible');
-    svg.style.cursor = 'grab';
-    svg.style.display = 'block';
+    svg.style.cssText = 'cursor:grab;display:block;overflow:visible';
 
-    const dualEdgeGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-    dualEdgeGroup.setAttribute('id', 'polyhedron-dual-edges');
-    svg.appendChild(dualEdgeGroup);
-
+    const dualGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
     const edgeGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-    edgeGroup.setAttribute('id', 'polyhedron-edges');
-    svg.appendChild(edgeGroup);
+    svg.append(dualGroup, edgeGroup);
 
-    const initialProjected: Projected[] = VERTICES.map(v => {
-      const rotated = rotatePoint(v, state.rotation);
-      return project(rotated);
-    });
-
-    const initialDualProjected: Projected[] = DUAL_VERTICES.map(v => {
-      const rotated = rotatePoint(v, state.rotation);
-      return project(rotated);
-    });
-
-    dualEdgeElements = DUAL_EDGES.map((edge) => {
-      const line = document.createElementNS('http://www.w3.org/2000/svg', 'line') as SVGLineElement;
-      const [i1, i2] = edge;
-      const p1 = initialDualProjected[i1];
-      const p2 = initialDualProjected[i2];
-
-      line.setAttribute('x1', p1.x.toString());
-      line.setAttribute('y1', p1.y.toString());
-      line.setAttribute('x2', p2.x.toString());
-      line.setAttribute('y2', p2.y.toString());
+    // Create dual edges
+    dualLines = dual.edges.map(() => {
+      const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
       line.setAttribute('stroke', config.dualStrokeColor);
-      line.setAttribute('stroke-width', config.dualStrokeWidth.toString());
-      line.setAttribute('stroke-opacity', config.dualStrokeOpacity.toString());
+      line.setAttribute('stroke-width', String(config.dualStrokeWidth));
       line.setAttribute('stroke-linecap', 'round');
-      dualEdgeGroup.appendChild(line);
+      dualGroup.appendChild(line);
       return line;
     });
 
-    edgeElements = EDGES.map((edge) => {
-      const line = document.createElementNS('http://www.w3.org/2000/svg', 'line') as SVGLineElement;
-      const [i1, i2] = edge;
-      const p1 = initialProjected[i1];
-      const p2 = initialProjected[i2];
-
-      line.setAttribute('x1', p1.x.toString());
-      line.setAttribute('y1', p1.y.toString());
-      line.setAttribute('x2', p2.x.toString());
-      line.setAttribute('y2', p2.y.toString());
+    // Create triakis edges
+    edgeLines = triakis.edges.map(() => {
+      const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
       line.setAttribute('stroke', config.strokeColor);
-      line.setAttribute('stroke-width', config.strokeWidth.toString());
-      line.setAttribute('stroke-opacity', config.strokeOpacity.toString());
+      line.setAttribute('stroke-width', String(config.strokeWidth));
       line.setAttribute('stroke-linecap', 'round');
       edgeGroup.appendChild(line);
       return line;
     });
 
     if (config.vertexRadius > 0) {
-      const vertexGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-      vertexGroup.setAttribute('id', 'polyhedron-vertices');
-      svg.appendChild(vertexGroup);
-
-      vertexElements = initialProjected.map((p) => {
-        const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle') as SVGCircleElement;
-        circle.setAttribute('cx', p.x.toString());
-        circle.setAttribute('cy', p.y.toString());
-        circle.setAttribute('r', config.vertexRadius.toString());
-        circle.setAttribute('fill', config.vertexColor);
-        vertexGroup.appendChild(circle);
-        return circle;
+      const vertGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+      svg.appendChild(vertGroup);
+      vertexCircles = triakis.vertices.map(() => {
+        const c = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+        c.setAttribute('r', String(config.vertexRadius));
+        c.setAttribute('fill', config.vertexColor);
+        vertGroup.appendChild(c);
+        return c;
       });
     }
 
@@ -447,401 +303,248 @@ const Polyhedron: PolyhedronAPI = (function(): PolyhedronAPI {
   }
 
   function updateDisplayMode(): void {
-    const showInner = config.displayMode === 'inner' || config.displayMode === 'both';
-    const showOuter = config.displayMode === 'outer' || config.displayMode === 'both';
-
-    edgeElements.forEach(line => {
-      line.style.display = showInner ? '' : 'none';
-    });
-
-    dualEdgeElements.forEach(line => {
-      line.style.display = showOuter ? '' : 'none';
-    });
-
-    vertexElements.forEach(circle => {
-      circle.style.display = showInner ? '' : 'none';
-    });
+    const showInner = config.displayMode !== 'outer';
+    const showOuter = config.displayMode !== 'inner';
+    const innerDisplay = showInner ? '' : 'none';
+    const outerDisplay = showOuter ? '' : 'none';
+    
+    edgeLines.forEach(l => l.style.display = innerDisplay);
+    dualLines.forEach(l => l.style.display = outerDisplay);
+    vertexCircles.forEach(c => c.style.display = innerDisplay);
   }
 
   function render(): void {
-    const projected: Projected[] = VERTICES.map(v => {
-      const rotated = rotatePoint(v, state.rotation);
-      return project(rotated);
-    });
+    const rot: Rotation = { x: rotX, y: rotY, z: rotZ };
+    const showInner = config.displayMode !== 'outer';
+    const showOuter = config.displayMode !== 'inner';
+    const fade = config.depthFading;
 
-    const dualProjected: Projected[] = DUAL_VERTICES.map(v => {
-      const rotated = rotatePoint(v, state.rotation);
-      return project(rotated);
-    });
+    // Project vertices
+    if (showInner) {
+      for (let i = 0; i < triakis.vertices.length; i++) {
+        projected[i] = project(rotatePoint(triakis.vertices[i], rot));
+      }
+    }
+    if (showOuter) {
+      for (let i = 0; i < dual.vertices.length; i++) {
+        dualProjected[i] = project(rotatePoint(dual.vertices[i], rot));
+      }
+    }
 
     // Update dual edges
-    interface EdgeData {
-      index: number;
-      p1: Projected;
-      p2: Projected;
-      avgZ: number;
-    }
-
-    const dualEdgeData: EdgeData[] = DUAL_EDGES.map((edge, i) => {
-      const [i1, i2] = edge;
-      const p1 = dualProjected[i1];
-      const p2 = dualProjected[i2];
-      const avgZ = (p1.z + p2.z) / 2;
-      return { index: i, p1, p2, avgZ };
-    });
-
-    dualEdgeData.sort((a, b) => a.avgZ - b.avgZ);
-
-    dualEdgeData.forEach((data) => {
-      const line = dualEdgeElements[data.index];
-      line.setAttribute('x1', data.p1.x.toString());
-      line.setAttribute('y1', data.p1.y.toString());
-      line.setAttribute('x2', data.p2.x.toString());
-      line.setAttribute('y2', data.p2.y.toString());
-
-      if (config.depthFading) {
-        const depthFactor = (data.avgZ + 2) / 4;
-        const opacity = (0.15 + depthFactor * 0.85) * config.dualStrokeOpacity;
-        line.setAttribute('stroke-opacity', opacity.toString());
-      }
-    });
-
-    // Update inner edges
-    const edgeData: EdgeData[] = EDGES.map((edge, i) => {
-      const [i1, i2] = edge;
-      const p1 = projected[i1];
-      const p2 = projected[i2];
-      const avgZ = (p1.z + p2.z) / 2;
-      return { index: i, p1, p2, avgZ };
-    });
-
-    edgeData.sort((a, b) => a.avgZ - b.avgZ);
-
-    edgeData.forEach((data) => {
-      const line = edgeElements[data.index];
-      line.setAttribute('x1', data.p1.x.toString());
-      line.setAttribute('y1', data.p1.y.toString());
-      line.setAttribute('x2', data.p2.x.toString());
-      line.setAttribute('y2', data.p2.y.toString());
-
-      if (config.depthFading) {
-        const depthFactor = (data.avgZ + 2) / 4;
-        const opacity = (0.25 + depthFactor * 0.75) * config.strokeOpacity;
-        line.setAttribute('stroke-opacity', opacity.toString());
-      }
-    });
-
-    // Update vertices
-    if (config.vertexRadius > 0 && vertexElements.length > 0) {
-      projected.forEach((p, i) => {
-        vertexElements[i].setAttribute('cx', p.x.toString());
-        vertexElements[i].setAttribute('cy', p.y.toString());
-
-        if (config.depthFading) {
-          const depthFactor = (p.z + 2) / 4;
-          const opacity = 0.25 + depthFactor * 0.75;
-          vertexElements[i].setAttribute('fill-opacity', opacity.toString());
+    if (showOuter) {
+      for (let i = 0; i < dual.edges.length; i++) {
+        const [i1, i2] = dual.edges[i];
+        const p1 = dualProjected[i1], p2 = dualProjected[i2];
+        const line = dualLines[i];
+        line.setAttribute('x1', String(p1.x));
+        line.setAttribute('y1', String(p1.y));
+        line.setAttribute('x2', String(p2.x));
+        line.setAttribute('y2', String(p2.y));
+        if (fade) {
+          const depth = ((p1.z + p2.z) / 2 + 2) / 4;
+          line.setAttribute('stroke-opacity', String((0.15 + depth * 0.85) * config.dualStrokeOpacity));
         }
-      });
+      }
+    }
+
+    // Update triakis edges
+    if (showInner) {
+      for (let i = 0; i < triakis.edges.length; i++) {
+        const [i1, i2] = triakis.edges[i];
+        const p1 = projected[i1], p2 = projected[i2];
+        const line = edgeLines[i];
+        line.setAttribute('x1', String(p1.x));
+        line.setAttribute('y1', String(p1.y));
+        line.setAttribute('x2', String(p2.x));
+        line.setAttribute('y2', String(p2.y));
+        if (fade) {
+          const depth = ((p1.z + p2.z) / 2 + 2) / 4;
+          line.setAttribute('stroke-opacity', String((0.25 + depth * 0.75) * config.strokeOpacity));
+        }
+      }
+
+      // Update vertices
+      for (let i = 0; i < vertexCircles.length; i++) {
+        const p = projected[i];
+        vertexCircles[i].setAttribute('cx', String(p.x));
+        vertexCircles[i].setAttribute('cy', String(p.y));
+        if (fade) {
+          vertexCircles[i].setAttribute('fill-opacity', String(0.25 + ((p.z + 2) / 4) * 0.75));
+        }
+      }
     }
   }
 
-  // ===========================================================================
-  // EVENT HANDLERS
-  // ===========================================================================
-
-  function getPointerPosition(e: MouseEvent | TouchEvent): Point2D {
-    const source = 'touches' in e ? e.touches[0] : e;
-    return { x: source.clientX, y: source.clientY };
+  // Event handlers
+  function getPos(e: MouseEvent | TouchEvent): Point2D {
+    const src = 'touches' in e ? e.touches[0] : e;
+    return { x: src.clientX, y: src.clientY };
   }
 
-  function onPointerDown(e: MouseEvent | TouchEvent): void {
+  function onDown(e: MouseEvent | TouchEvent): void {
     e.preventDefault();
-    const pos = getPointerPosition(e);
-    state.lastPointer = pos;
-    state.pointerDownPos = pos;
-    state.isDragging = true;
-    state.wasDragging = false;
-
-    if (state.resumeTimer) {
-      clearTimeout(state.resumeTimer);
-      state.resumeTimer = null;
-    }
+    const p = getPos(e);
+    lastX = downX = p.x;
+    lastY = downY = p.y;
+    isDragging = true;
+    wasDragging = false;
+    if (resumeTimer) { clearTimeout(resumeTimer); resumeTimer = null; }
   }
 
-  function onPointerMove(e: MouseEvent | TouchEvent): void {
-    if (!state.isDragging) return;
+  function onMove(e: MouseEvent | TouchEvent): void {
+    if (!isDragging) return;
     e.preventDefault();
-
-    const pointer = getPointerPosition(e);
-
-    const dx = pointer.x - state.pointerDownPos.x;
-    const dy = pointer.y - state.pointerDownPos.y;
-    const distance = Math.sqrt(dx * dx + dy * dy);
-
-    if (distance > DRAG_THRESHOLD) {
-      state.wasDragging = true;
-      state.isAutoRotating = false;
+    const p = getPos(e);
+    const dx = p.x - downX, dy = p.y - downY;
+    
+    if (dx * dx + dy * dy > DRAG_THRESHOLD) {
+      wasDragging = true;
+      isAutoRotating = false;
       if (svg) svg.style.cursor = 'grabbing';
     }
 
-    if (state.wasDragging) {
-      const delta = {
-        x: pointer.x - state.lastPointer.x,
-        y: pointer.y - state.lastPointer.y
-      };
-
-      state.rotation.y += delta.x * config.dragSensitivity;
-      state.rotation.x += delta.y * config.dragSensitivity;
-
-      state.velocity = {
-        x: delta.y * config.dragSensitivity,
-        y: delta.x * config.dragSensitivity
-      };
+    if (wasDragging) {
+      const mx = p.x - lastX, my = p.y - lastY;
+      rotY += mx * config.dragSensitivity;
+      rotX += my * config.dragSensitivity;
+      velX = my * config.dragSensitivity;
+      velY = mx * config.dragSensitivity;
     }
-
-    state.lastPointer = pointer;
+    lastX = p.x; lastY = p.y;
   }
 
-  function onPointerUp(): void {
-    if (!state.isDragging) return;
-    state.isDragging = false;
+  function onUp(): void {
+    if (!isDragging) return;
+    isDragging = false;
     if (svg) svg.style.cursor = 'grab';
-
-    if (state.wasDragging) {
-      state.resumeTimer = window.setTimeout(() => {
-        state.isAutoRotating = true;
-      }, config.idleResumeDelay);
+    if (wasDragging) {
+      resumeTimer = window.setTimeout(() => { isAutoRotating = true; }, config.idleResumeDelay);
     }
   }
 
-  function onClickOrTap(): void {
-    if (!state.wasDragging) {
-      cycleDisplayMode();
-    }
-    state.wasDragging = false;
+  function onClick(): void {
+    if (!wasDragging) cycleDisplayMode();
+    wasDragging = false;
   }
 
   function bindEvents(): void {
     if (!svg) return;
-
-    svg.addEventListener('mousedown', onPointerDown as EventListener);
-    window.addEventListener('mousemove', onPointerMove as EventListener);
-    window.addEventListener('mouseup', onPointerUp);
-    svg.addEventListener('mouseleave', onPointerUp);
-    svg.addEventListener('touchstart', onPointerDown as EventListener, { passive: false });
-    window.addEventListener('touchmove', onPointerMove as EventListener, { passive: false });
-    window.addEventListener('touchend', onPointerUp);
-
-    svg.addEventListener('click', onClickOrTap);
-    svg.addEventListener('touchend', onClickOrTap);
+    svg.addEventListener('mousedown', onDown as EventListener);
+    svg.addEventListener('touchstart', onDown as EventListener, { passive: false });
+    window.addEventListener('mousemove', onMove as EventListener);
+    window.addEventListener('touchmove', onMove as EventListener, { passive: false });
+    window.addEventListener('mouseup', onUp);
+    window.addEventListener('touchend', onUp);
+    svg.addEventListener('click', onClick);
   }
 
   function unbindEvents(): void {
     if (!svg) return;
-
-    svg.removeEventListener('mousedown', onPointerDown as EventListener);
-    window.removeEventListener('mousemove', onPointerMove as EventListener);
-    window.removeEventListener('mouseup', onPointerUp);
-    svg.removeEventListener('mouseleave', onPointerUp);
-    svg.removeEventListener('touchstart', onPointerDown as EventListener);
-    window.removeEventListener('touchmove', onPointerMove as EventListener);
-    window.removeEventListener('touchend', onPointerUp);
-
-    svg.removeEventListener('click', onClickOrTap);
-    svg.removeEventListener('touchend', onClickOrTap);
+    svg.removeEventListener('mousedown', onDown as EventListener);
+    svg.removeEventListener('touchstart', onDown as EventListener);
+    window.removeEventListener('mousemove', onMove as EventListener);
+    window.removeEventListener('touchmove', onMove as EventListener);
+    window.removeEventListener('mouseup', onUp);
+    window.removeEventListener('touchend', onUp);
+    svg.removeEventListener('click', onClick);
   }
-
-  // ===========================================================================
-  // ANIMATION
-  // ===========================================================================
 
   function animate(): void {
     animationId = requestAnimationFrame(animate);
-
-    if (state.isAutoRotating) {
-      state.rotation.x += config.autoRotation.x;
-      state.rotation.y += config.autoRotation.y;
-      state.rotation.z += config.autoRotation.z;
-    } else if (!state.isDragging) {
-      state.rotation.x += state.velocity.x;
-      state.rotation.y += state.velocity.y;
-      state.velocity.x *= config.momentumDamping;
-      state.velocity.y *= config.momentumDamping;
+    
+    if (isAutoRotating) {
+      rotX += config.autoRotation.x;
+      rotY += config.autoRotation.y;
+      rotZ += config.autoRotation.z;
+    } else if (!isDragging) {
+      rotX += velX; rotY += velY;
+      velX *= config.momentumDamping;
+      velY *= config.momentumDamping;
     }
-
     render();
   }
-
-  // ===========================================================================
-  // MODE LABEL
-  // ===========================================================================
 
   function showModeLabel(mode: DisplayMode): void {
     const hint = document.getElementById('polyhedron-hint');
     if (!hint) return;
-
-    const existingTimerId = hint.dataset.timerId;
-    if (existingTimerId) {
-      clearTimeout(parseInt(existingTimerId));
-    }
-
+    
+    const tid = hint.dataset.timerId;
+    if (tid) clearTimeout(+tid);
+    
     hint.style.transition = 'none';
     hint.style.opacity = '1';
     hint.textContent = MODE_LABELS[mode];
     hint.style.display = '';
-
-    // Force reflow
-    hint.offsetHeight;
-
-    const timerId = window.setTimeout(() => {
-      hint.style.transition = 'opacity 0.5s ease';
+    hint.offsetHeight; // force reflow
+    
+    hint.dataset.timerId = String(setTimeout(() => {
+      hint.style.transition = 'opacity 0.5s';
       hint.style.opacity = '0';
-
-      setTimeout(() => {
-        hint.style.display = 'none';
-      }, 500);
-    }, 1500);
-
-    hint.dataset.timerId = timerId.toString();
+      setTimeout(() => { hint.style.display = 'none'; }, 500);
+    }, 1500));
   }
 
-  // ===========================================================================
-  // PUBLIC API
-  // ===========================================================================
-
+  // Public API
   function init(container: HTMLElement | string, userConfig: Partial<Config> = {}): boolean {
-    if (typeof container === 'string') {
-      containerEl = document.querySelector(container);
-    } else {
-      containerEl = container;
-    }
-
-    if (!containerEl) {
-      console.error('[Polyhedron] Container element not found');
-      return false;
-    }
-
-    config = {
-      ...DEFAULT_CONFIG,
-      ...userConfig,
-      autoRotation: {
-        ...DEFAULT_CONFIG.autoRotation,
-        ...(userConfig.autoRotation || {})
-      }
+    containerEl = typeof container === 'string' ? document.querySelector(container) : container;
+    if (!containerEl) { console.error('[Polyhedron] Container not found'); return false; }
+    
+    config = { ...DEFAULT_CONFIG, ...userConfig, 
+      autoRotation: { ...DEFAULT_CONFIG.autoRotation, ...(userConfig.autoRotation || {}) }
     };
-
+    
     createSVG();
     bindEvents();
     animate();
-
     return true;
   }
 
   function destroy(): void {
-    if (animationId) {
-      cancelAnimationFrame(animationId);
-      animationId = null;
-    }
-
-    if (state.resumeTimer) {
-      clearTimeout(state.resumeTimer);
-      state.resumeTimer = null;
-    }
-
+    if (animationId) cancelAnimationFrame(animationId);
+    if (resumeTimer) clearTimeout(resumeTimer);
     unbindEvents();
-
-    if (svg && svg.parentNode) {
-      svg.parentNode.removeChild(svg);
-    }
-
-    svg = null;
-    edgeElements = [];
-    dualEdgeElements = [];
-    vertexElements = [];
-    containerEl = null;
-
-    state.isDragging = false;
-    state.wasDragging = false;
-    state.isAutoRotating = true;
-    state.rotation = { x: 0.5, y: 0.3, z: 0 };
-    state.velocity = { x: 0, y: 0 };
+    svg?.remove();
+    svg = null; edgeLines = []; dualLines = []; vertexCircles = []; containerEl = null;
+    isDragging = wasDragging = false; isAutoRotating = true;
+    rotX = 0.5; rotY = 0.3; rotZ = velX = velY = 0;
   }
 
-  function setConfig(newConfig: Partial<Config>): void {
-    config = {
-      ...config,
-      ...newConfig,
-      autoRotation: {
-        ...config.autoRotation,
-        ...(newConfig.autoRotation || {})
-      }
-    };
-
-    if (svg) {
-      if (newConfig.size !== undefined) {
-        svg.setAttribute('width', config.size.toString());
-        svg.setAttribute('height', config.size.toString());
-        svg.setAttribute('viewBox', `0 0 ${config.size} ${config.size}`);
-      }
+  function setConfig(nc: Partial<Config>): void {
+    config = { ...config, ...nc, autoRotation: { ...config.autoRotation, ...(nc.autoRotation || {}) }};
+    if (svg && nc.size !== undefined) {
+      svg.setAttribute('width', String(config.size));
+      svg.setAttribute('height', String(config.size));
+      svg.setAttribute('viewBox', `0 0 ${config.size} ${config.size}`);
     }
-
-    edgeElements.forEach(line => {
-      if (newConfig.strokeColor) line.setAttribute('stroke', config.strokeColor);
-      if (newConfig.strokeWidth !== undefined) line.setAttribute('stroke-width', config.strokeWidth.toString());
-    });
-
-    dualEdgeElements.forEach(line => {
-      if (newConfig.dualStrokeColor) line.setAttribute('stroke', config.dualStrokeColor);
-      if (newConfig.dualStrokeWidth !== undefined) line.setAttribute('stroke-width', config.dualStrokeWidth.toString());
-    });
-
-    vertexElements.forEach(circle => {
-      if (newConfig.vertexColor) circle.setAttribute('fill', config.vertexColor);
-      if (newConfig.vertexRadius !== undefined) circle.setAttribute('r', config.vertexRadius.toString());
-    });
-
-    if (newConfig.displayMode !== undefined) {
-      updateDisplayMode();
-    }
+    if (nc.strokeColor) edgeLines.forEach(l => l.setAttribute('stroke', config.strokeColor));
+    if (nc.strokeWidth !== undefined) edgeLines.forEach(l => l.setAttribute('stroke-width', String(config.strokeWidth)));
+    if (nc.dualStrokeColor) dualLines.forEach(l => l.setAttribute('stroke', config.dualStrokeColor));
+    if (nc.dualStrokeWidth !== undefined) dualLines.forEach(l => l.setAttribute('stroke-width', String(config.dualStrokeWidth)));
+    if (nc.displayMode !== undefined) updateDisplayMode();
   }
 
   function cycleDisplayMode(): DisplayMode {
     const modes: DisplayMode[] = ['inner', 'outer', 'both'];
-    const currentIndex = modes.indexOf(config.displayMode);
-    const nextIndex = (currentIndex + 1) % modes.length;
-    config.displayMode = modes[nextIndex];
+    config.displayMode = modes[(modes.indexOf(config.displayMode) + 1) % 3];
     updateDisplayMode();
     showModeLabel(config.displayMode);
     return config.displayMode;
   }
 
-  function setDisplayMode(mode: DisplayMode, showLabel: boolean = true): void {
+  function setDisplayMode(mode: DisplayMode, showLabel = true): void {
     config.displayMode = mode;
     updateDisplayMode();
     if (showLabel) showModeLabel(mode);
   }
 
-  return {
-    init,
-    destroy,
-    setConfig,
-    cycleDisplayMode,
-    setDisplayMode,
-    get config(): Config { return { ...config }; }
-  };
+  return { init, destroy, setConfig, cycleDisplayMode, setDisplayMode, get config() { return { ...config }; } };
 })();
 
-// =============================================================================
-// AUTO-INITIALIZATION
-// =============================================================================
-
+// Auto-init
 document.addEventListener('DOMContentLoaded', () => {
-  const container = document.getElementById('polyhedron-container');
-  if (container) {
-    Polyhedron.init(container);
-  }
+  const c = document.getElementById('polyhedron-container');
+  if (c) Polyhedron.init(c);
 });
 
-// Expose globally for browser usage
 (window as any).Polyhedron = Polyhedron;

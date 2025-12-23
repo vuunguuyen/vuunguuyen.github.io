@@ -1,14 +1,17 @@
 {
   "name": "vuunguuyen.github.io",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Personal website for Vu Nguyen",
-  "scripts": {
-    "build": "tsc && npm run clean-exports",
-    "clean-exports": "sed -i '' '/^export /d' js/polyhedron.js",
-    "watch": "tsc --watch"
-  },
   "author": "Vu Nguyen",
   "license": "MIT",
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "scripts": {
+    "build": "tsc && node -e \"let f=require('fs'),p='js/polyhedron.js';f.writeFileSync(p,f.readFileSync(p,'utf8').replace(/^export .*/gm,''))\"",
+    "watch": "tsc --watch",
+    "clean": "rm -rf js/*.js"
+  },
   "devDependencies": {
     "typescript": "^5.0.0"
   }
