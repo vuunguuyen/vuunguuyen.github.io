@@ -1,6 +1,6 @@
 /**
  * ============================================================================
- * WEBSTYLES.CSS - Main Site Stylesheet
+ * WEBSTYLES.CSS - Main Site Stylesheet (Optimized)
  * ============================================================================
  * @author Vu Nguyen
  * ============================================================================
@@ -159,11 +159,11 @@ a:hover { text-decoration: none; }
 
 @media (max-width: 600px) {
   :root {
-    --font-size-base: 16px;
-    --font-size-small: 12px;
+    --font-size-base: 19px;
+    --font-size-small: 14px;
   }
   
   .site-container { padding: 1rem 0.5rem; }
-  h1 { font-size: 22px; }
-  h2 { font-size: 18px; }
+  h1 { font-size: 26px; }
+  h2 { font-size: 21px; }
 }
