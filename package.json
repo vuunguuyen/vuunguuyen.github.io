@@ -1,0 +1,15 @@
+{
+  "name": "vuunguuyen.github.io",
+  "version": "1.0.0",
+  "description": "Personal website for Vu Nguyen",
+  "scripts": {
+    "build": "tsc && npm run clean-exports",
+    "clean-exports": "sed -i '' '/^export /d' js/polyhedron.js",
+    "watch": "tsc --watch"
+  },
+  "author": "Vu Nguyen",
+  "license": "MIT",
+  "devDependencies": {
+    "typescript": "^5.0.0"
+  }
+}
