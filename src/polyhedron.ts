@@ -1,6 +1,6 @@
 /**
  * ============================================================================
- * INTERACTIVE TRIAKIS ICOSAHEDRON COMPONENT
+ * INTERACTIVE TRIAKIS ICOSAHEDRON COMPONENT (SVG Vector Version)
  * ============================================================================
  * 
  * Optimized 3D wireframe polyhedron renderer using SVG.
@@ -414,18 +414,25 @@ const Polyhedron: PolyhedronAPI = (function(): PolyhedronAPI {
     lastX = p.x; lastY = p.y;
   }
 
-  function onUp(): void {
+  function onUp(e: Event): void {
     if (!isDragging) return;
     isDragging = false;
     if (svg) svg.style.cursor = 'grab';
+    
     if (wasDragging) {
       resumeTimer = window.setTimeout(() => { isAutoRotating = true; }, config.idleResumeDelay);
+    } else if (e.type === 'touchend') {
+      // Handle tap on mobile (no drag occurred)
+      cycleDisplayMode();
     }
+    
+    // Reset wasDragging after a short delay to avoid conflict with click event
+    setTimeout(() => { wasDragging = false; }, 10);
   }
 
   function onClick(): void {
+    // Only handle click for mouse (touchend handles mobile)
     if (!wasDragging) cycleDisplayMode();
-    wasDragging = false;
   }
 
   function bindEvents(): void {
@@ -434,8 +441,8 @@ const Polyhedron: PolyhedronAPI = (function(): PolyhedronAPI {
     svg.addEventListener('touchstart', onDown as EventListener, { passive: false });
     window.addEventListener('mousemove', onMove as EventListener);
     window.addEventListener('touchmove', onMove as EventListener, { passive: false });
-    window.addEventListener('mouseup', onUp);
-    window.addEventListener('touchend', onUp);
+    window.addEventListener('mouseup', onUp as EventListener);
+    window.addEventListener('touchend', onUp as EventListener);
     svg.addEventListener('click', onClick);
   }
 
@@ -445,8 +452,8 @@ const Polyhedron: PolyhedronAPI = (function(): PolyhedronAPI {
     svg.removeEventListener('touchstart', onDown as EventListener);
     window.removeEventListener('mousemove', onMove as EventListener);
     window.removeEventListener('touchmove', onMove as EventListener);
-    window.removeEventListener('mouseup', onUp);
-    window.removeEventListener('touchend', onUp);
+    window.removeEventListener('mouseup', onUp as EventListener);
+    window.removeEventListener('touchend', onUp as EventListener);
     svg.removeEventListener('click', onClick);
   }
 

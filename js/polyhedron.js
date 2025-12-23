@@ -298,7 +298,7 @@ const Polyhedron = (function () {
         lastX = p.x;
         lastY = p.y;
     }
-    function onUp() {
+    function onUp(e) {
         if (!isDragging)
             return;
         isDragging = false;
@@ -307,11 +307,14 @@ const Polyhedron = (function () {
         if (wasDragging) {
             resumeTimer = window.setTimeout(() => { isAutoRotating = true; }, config.idleResumeDelay);
         }
+        else if (e.type === 'touchend') {
+            cycleDisplayMode();
+        }
+        setTimeout(() => { wasDragging = false; }, 10);
     }
     function onClick() {
         if (!wasDragging)
             cycleDisplayMode();
-        wasDragging = false;
     }
     function bindEvents() {
         if (!svg)
