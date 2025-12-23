@@ -22,7 +22,7 @@ const DRAG_THRESHOLD = 5;
 const MODE_LABELS = {
     inner: 'Triakis Icosahedron',
     outer: 'Truncated Dodecahedron',
-    both: 'Dual Pair'
+    both: 'Triakis Icosahedron & Truncated Dodecahedron'
 };
 const ICO_VERTICES = [
     [-1, PHI, 0], [1, PHI, 0], [-1, -PHI, 0], [1, -PHI, 0],
