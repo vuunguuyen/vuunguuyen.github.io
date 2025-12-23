@@ -274,6 +274,7 @@ const Polyhedron = (function () {
         lastY = downY = p.y;
         isDragging = true;
         wasDragging = false;
+        isAutoRotating = false;
         if (resumeTimer) {
             clearTimeout(resumeTimer);
             resumeTimer = null;
@@ -307,17 +308,26 @@ const Polyhedron = (function () {
         isDragging = false;
         if (svg)
             svg.style.cursor = 'grab';
-        if (wasDragging) {
-            resumeTimer = window.setTimeout(() => { isAutoRotating = true; }, config.idleResumeDelay);
+        const didDrag = wasDragging;
+        if (didDrag) {
+            if (resumeTimer)
+                clearTimeout(resumeTimer);
+            resumeTimer = window.setTimeout(() => {
+                isAutoRotating = true;
+            }, config.idleResumeDelay);
         }
         else if (e.type === 'touchend') {
             cycleDisplayMode();
+            if (!isAutoRotating) {
+                isAutoRotating = true;
+            }
         }
-        setTimeout(() => { wasDragging = false; }, 10);
+        wasDragging = false;
     }
     function onClick() {
-        if (!wasDragging)
-            cycleDisplayMode();
+        if (resumeTimer)
+            clearTimeout(resumeTimer);
+        isAutoRotating = true;
     }
     function bindEvents() {
         if (!svg)

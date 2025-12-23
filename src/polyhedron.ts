@@ -396,6 +396,7 @@ const Polyhedron: PolyhedronAPI = (function(): PolyhedronAPI {
     lastY = downY = p.y;
     isDragging = true;
     wasDragging = false;
+    isAutoRotating = false;
     if (resumeTimer) { clearTimeout(resumeTimer); resumeTimer = null; }
   }
 
@@ -426,20 +427,31 @@ const Polyhedron: PolyhedronAPI = (function(): PolyhedronAPI {
     isDragging = false;
     if (svg) svg.style.cursor = 'grab';
     
-    if (wasDragging) {
-      resumeTimer = window.setTimeout(() => { isAutoRotating = true; }, config.idleResumeDelay);
+    const didDrag = wasDragging;
+    
+    if (didDrag) {
+      // After dragging, resume auto-rotation after delay
+      if (resumeTimer) clearTimeout(resumeTimer);
+      resumeTimer = window.setTimeout(() => { 
+        isAutoRotating = true; 
+      }, config.idleResumeDelay);
     } else if (e.type === 'touchend') {
       // Handle tap on mobile (no drag occurred)
       cycleDisplayMode();
+      // Ensure auto-rotation continues after tap
+      if (!isAutoRotating) {
+        isAutoRotating = true;
+      }
     }
     
-    // Reset wasDragging after a short delay to avoid conflict with click event
-    setTimeout(() => { wasDragging = false; }, 10);
+    wasDragging = false;
   }
 
   function onClick(): void {
     // Only handle click for mouse (touchend handles mobile)
-    if (!wasDragging) cycleDisplayMode();
+    // Always resume auto-rotation after click
+    if (resumeTimer) clearTimeout(resumeTimer);
+    isAutoRotating = true;
   }
 
   function bindEvents(): void {
