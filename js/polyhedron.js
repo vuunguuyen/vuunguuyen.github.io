@@ -24,18 +24,6 @@ const ICO_FACES = [
     [3, 9, 4], [3, 4, 2], [3, 2, 6], [3, 6, 8], [3, 8, 9],
     [4, 9, 5], [2, 4, 11], [6, 2, 10], [8, 6, 7], [9, 8, 1]
 ];
-const TRUNC_DODECA_EDGES = [
-    [0, 2], [0, 12], [0, 16], [1, 3], [1, 13], [1, 17], [2, 14], [2, 18], [3, 15], [3, 19],
-    [4, 5], [4, 20], [4, 22], [5, 21], [5, 23], [6, 7], [6, 24], [6, 26], [7, 25], [7, 27],
-    [8, 10], [8, 28], [8, 29], [9, 11], [9, 30], [9, 31], [10, 32], [10, 33], [11, 34], [11, 35],
-    [12, 16], [12, 36], [13, 17], [13, 37], [14, 18], [14, 38], [15, 19], [15, 39], [16, 40],
-    [17, 41], [18, 42], [19, 43], [20, 22], [20, 44], [21, 23], [21, 45], [22, 46], [23, 47],
-    [24, 26], [24, 48], [25, 27], [25, 49], [26, 50], [27, 51], [28, 29], [28, 52], [29, 53],
-    [30, 31], [30, 54], [31, 55], [32, 33], [32, 56], [33, 57], [34, 35], [34, 58], [35, 59],
-    [36, 40], [36, 52], [37, 41], [37, 53], [38, 42], [38, 54], [39, 43], [39, 55], [40, 48],
-    [41, 49], [42, 50], [43, 51], [44, 46], [44, 52], [45, 47], [45, 53], [46, 54], [47, 55],
-    [48, 56], [49, 57], [50, 58], [51, 59], [56, 58], [57, 59]
-];
 const DEFAULT_CONFIG = {
     size: 280,
     scale: 85,
@@ -123,9 +111,24 @@ function generateTruncatedDodecahedron() {
         const [x, y, z] = raw[i];
         maxDistSq = Math.max(maxDistSq, x * x + y * y + z * z);
     }
-    const scale = DUAL_SCALE / Math.sqrt(maxDistSq);
+    const maxDist = Math.sqrt(maxDistSq);
+    const scale = DUAL_SCALE / maxDist;
     const vertices = raw.map(([x, y, z]) => [x * scale, y * scale, z * scale]);
-    return { vertices, edges: TRUNC_DODECA_EDGES };
+    const edges = [];
+    const edgeLength = 2 * INV_PHI / maxDist * DUAL_SCALE * 1.1;
+    const edgeLengthSq = edgeLength * edgeLength;
+    for (let i = 0; i < vertices.length; i++) {
+        for (let j = i + 1; j < vertices.length; j++) {
+            const dx = vertices[i][0] - vertices[j][0];
+            const dy = vertices[i][1] - vertices[j][1];
+            const dz = vertices[i][2] - vertices[j][2];
+            const distSq = dx * dx + dy * dy + dz * dz;
+            if (distSq < edgeLengthSq) {
+                edges.push([i, j]);
+            }
+        }
+    }
+    return { vertices, edges };
 }
 function rotatePoint(p, r) {
     const cx = Math.cos(r.x), sx = Math.sin(r.x);
