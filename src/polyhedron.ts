@@ -102,7 +102,7 @@ const DRAG_THRESHOLD: number = 5;
 const MODE_LABELS: Record<DisplayMode, string> = {
   inner: 'Triakis Icosahedron',
   outer: 'Truncated Dodecahedron',
-  both: 'Dual Pair'
+  both: 'Triakis Icosahedron & Truncated Dodecahedron'
 };
 
 const ICO_VERTICES: Point3D[] = [
